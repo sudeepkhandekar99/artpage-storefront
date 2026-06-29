@@ -1,9 +1,10 @@
 import Link from "next/link";
+import type { Product } from "@/lib/products/types";
 import {
+  formatPrice,
   getProductImageUrl,
   productHref,
-  type Product,
-} from "@/lib/products";
+} from "@/lib/products/utils";
 
 export function ProductCard({ product }: { product: Product }) {
   const imageUrl = getProductImageUrl(product);
@@ -22,7 +23,7 @@ export function ProductCard({ product }: { product: Product }) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-[#f8eff4] p-8 text-center">
-            <span className="font-display text-3xl font-bold">
+            <span className="font-display text-3xl font-bold capitalize">
               {product.category}
             </span>
           </div>
@@ -48,7 +49,7 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
 
           <p className="shrink-0 text-base font-extrabold">
-            ${Number(product.price).toFixed(2)}
+            {formatPrice(product.price)}
           </p>
         </div>
 

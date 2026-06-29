@@ -3,7 +3,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Section } from "@/components/ui/Section";
 import { ProductCard } from "@/components/products/ProductCard";
 import { EmptyState } from "@/components/states/EmptyState";
-import { getCategories, getProducts } from "@/lib/products";
+import { getCategories, getProducts } from "@/lib/products/queries";
 
 export const metadata = {
   title: "Store",
@@ -60,12 +60,12 @@ export default async function StorePage({ searchParams }: StorePageProps) {
                 <select
                   name="category"
                   defaultValue={currentCategory}
-                  className="mt-2 h-11 w-full rounded-full border border-[#ead8e2] bg-white px-4 text-sm outline-none"
+                  className="mt-2 h-11 w-full rounded-full border border-[#ead8e2] bg-white px-4 text-sm capitalize outline-none"
                 >
                   <option value="all">All categories</option>
                   {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
+                    <option key={category.name} value={category.name}>
+                      {category.name}
                     </option>
                   ))}
                 </select>

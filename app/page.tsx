@@ -3,7 +3,11 @@ import { ButtonLink } from "@/components/ui/ButtonLink";
 import { PageShell } from "@/components/ui/PageShell";
 import { Section } from "@/components/ui/Section";
 import { ProductCard } from "@/components/products/ProductCard";
-import { getCategories, getFeaturedProducts, getNewProducts } from "@/lib/products";
+import {
+  getCategories,
+  getFeaturedProducts,
+  getNewProducts,
+} from "@/lib/products/queries";
 
 export const revalidate = 60;
 
@@ -84,30 +88,39 @@ export default async function HomePage() {
         title="Shop by category"
         description="Browse handmade pieces by format and mood."
       >
-        <div className="grid gap-5 md:grid-cols-3">
-          {categories.map((category, index) => {
-            const colors = ["#F9B2D7", "#CFECF3", "#DAF9DE", "#F6FFDC"];
+        {categories.length > 0 ? (
+          <div className="grid gap-5 md:grid-cols-3">
+            {categories.map((category, index) => {
+              const colors = ["#F9B2D7", "#CFECF3", "#DAF9DE", "#F6FFDC"];
 
-            return (
-              <Link
-                key={category}
-                href={`/store?category=${category}`}
-                className="premium-card soft-motion rounded-[1.5rem] p-6"
-              >
-                <div
-                  className="mb-8 h-20 w-20 rounded-[1.5rem]"
-                  style={{ backgroundColor: colors[index % colors.length] }}
-                />
-                <h3 className="font-display text-3xl font-bold capitalize">
-                  {category}
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  Explore available {category} pieces.
-                </p>
-              </Link>
-            );
-          })}
-        </div>
+              return (
+                <Link
+                  key={category.name}
+                  href={`/store?category=${category.name}`}
+                  className="premium-card soft-motion rounded-[1.5rem] p-6"
+                >
+                  <div
+                    className="mb-8 h-20 w-20 rounded-[1.5rem]"
+                    style={{ backgroundColor: colors[index % colors.length] }}
+                  />
+                  <h3 className="font-display text-3xl font-bold capitalize">
+                    {category.name}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    {category.count} available piece
+                    {category.count === 1 ? "" : "s"}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="premium-card rounded-[1.5rem] p-8 text-center">
+            <p className="font-bold text-muted-foreground">
+              Categories will appear after active products are added.
+            </p>
+          </div>
+        )}
       </Section>
 
       <Section className="pb-20">

@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { ProductCard } from "@/components/products/ProductCard";
 import {
   getProductBySlug,
+  getRelatedProducts,
+} from "@/lib/products/queries";
+import {
+  formatPrice,
   getProductImageUrl,
-  type Product,
-} from "@/lib/products";
+} from "@/lib/products/utils";
 
 export const revalidate = 60;
 
@@ -35,7 +39,8 @@ export default async function ProductPage({
     notFound();
   }
 
-  const imageUrl = getProductImageUrl(product as Product);
+  const relatedProducts = await getRelatedProducts(product, 3);
+  const imageUrl = getProductImageUrl(product);
 
   return (
     <PageShell>
@@ -48,7 +53,7 @@ export default async function ProductPage({
               className="h-full w-full object-contain p-8"
             />
           ) : (
-            <span className="font-display text-5xl font-bold">
+            <span className="font-display text-5xl font-bold capitalize">
               {product.category}
             </span>
           )}
@@ -64,7 +69,7 @@ export default async function ProductPage({
           </h1>
 
           <p className="mt-5 text-2xl font-extrabold">
-            ${Number(product.price).toFixed(2)}
+            {formatPrice(product.price)}
           </p>
 
           {product.description && (
@@ -103,6 +108,25 @@ export default async function ProductPage({
           </div>
         </div>
       </section>
+
+      {relatedProducts.length > 0 && (
+        <section className="pb-12 pt-8">
+          <div className="mb-6">
+            <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.3em] text-[#b9598c]">
+              Related
+            </p>
+            <h2 className="font-display text-4xl font-bold">
+              More in {product.category}
+            </h2>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {relatedProducts.map((relatedProduct) => (
+              <ProductCard key={relatedProduct.id} product={relatedProduct} />
+            ))}
+          </div>
+        </section>
+      )}
     </PageShell>
   );
 }
