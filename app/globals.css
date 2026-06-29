@@ -42,10 +42,26 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 10%, rgba(249, 178, 215, 0.24), transparent 32%),
-    radial-gradient(circle at 88% 8%, rgba(207, 236, 243, 0.34), transparent 34%),
-    radial-gradient(circle at 16% 92%, rgba(218, 249, 222, 0.3), transparent 34%),
-    radial-gradient(circle at 86% 86%, rgba(246, 255, 220, 0.36), transparent 32%),
+    radial-gradient(
+      circle at 12% 10%,
+      rgba(249, 178, 215, 0.16),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 88% 8%,
+      rgba(207, 236, 243, 0.22),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 16% 92%,
+      rgba(218, 249, 222, 0.2),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 86% 86%,
+      rgba(246, 255, 220, 0.24),
+      transparent 32%
+    ),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-body), system-ui, sans-serif;
@@ -66,6 +82,8 @@ h4,
   background: var(--pink);
   color: var(--foreground);
 }
+
+/* Shared UI */
 
 .premium-card {
   border: 1px solid rgba(234, 216, 226, 0.9);
@@ -99,6 +117,67 @@ h4,
 
 .float-soft {
   animation: floatSoft 7s ease-in-out infinite;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hero orbit artwork */
+
+.hero-orbit-art {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  opacity: 0;
+  will-change: transform;
+  filter: drop-shadow(0 14px 20px rgba(36, 23, 31, 0.08));
+}
+
+.hero-orbit-image {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+}
+
+.hero-row-mask {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 5%,
+    black 95%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 5%,
+    black 95%,
+    transparent 100%
+  );
+}
+
+.hero-mobile-track {
+  animation: heroMobileTrack 36s linear infinite;
+  will-change: transform;
+}
+
+/* Animations */
+
+@keyframes heroMobileTrack {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @keyframes fadeIn {

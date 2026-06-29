@@ -22,7 +22,7 @@ export function getProductIdFromSlug(slug: string) {
 }
 
 export function getProductImagePath(product: Product) {
-  return product.jpg_image_path || product.png_image_path || null;
+  return product.png_image_path || product.jpg_image_path || null;
 }
 
 export function getProductImageUrl(product: Product) {
