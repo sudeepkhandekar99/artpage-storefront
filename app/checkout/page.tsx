@@ -1,19 +1,9 @@
-import { EmptyState } from "@/components/states/EmptyState";
-import { PageShell } from "@/components/ui/PageShell";
+import { CheckoutClient } from "@/components/checkout/CheckoutClient";
 
 export const metadata = {
-  title: "Checkout",
+  title: "Checkout | Ranin Art",
 };
 
 export default function CheckoutPage() {
-  return (
-    <PageShell>
-      <EmptyState
-        title="Checkout coming soon"
-        description="Guest checkout and Stripe Checkout will be added after cart functionality."
-        actionHref="/store"
-        actionLabel="Back to store"
-      />
-    </PageShell>
-  );
+  return <CheckoutClient />;
 }
