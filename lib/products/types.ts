@@ -18,6 +18,21 @@ export type Product = {
   metadata?: Record<string, unknown> | null;
   created_at: string;
   updated_at?: string | null;
+
+  // TODO future columns.
+  slug?: string | null;
+  short_description?: string | null;
+  medium?: string | null;
+  material?: string | null;
+  is_original?: boolean | null;
+  is_limited?: boolean | null;
+  edition_number?: string | null;
+  frame_included?: boolean | null;
+  care_instructions?: string | null;
+  shipping_note?: string | null;
+  processing_time_days?: number | null;
+  sold_out?: boolean | null;
+  visibility?: string | null;
 };
 
 export type ProductFilters = {
@@ -26,9 +41,18 @@ export type ProductFilters = {
   sort?: string;
   min?: string;
   max?: string;
+  featured?: string;
 };
 
 export type CategorySummary = {
   name: string;
   count: number;
+};
+
+export type StoreProductsResult = {
+  products: Product[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };

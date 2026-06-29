@@ -1,6 +1,11 @@
 import { supabasePublic } from "@/lib/supabase/public";
-import type { CategorySummary, Product, ProductFilters } from "./types";
-import { getProductIdFromSlug, normalizeCategory } from "./utils";
+import type {
+  CategorySummary,
+  Product,
+  ProductFilters,
+  StoreProductsResult,
+} from "./types";
+import { getProductIdFromSlug } from "./utils";
 
 const PRODUCT_SELECT = `
   id,
@@ -24,46 +29,68 @@ const PRODUCT_SELECT = `
   updated_at
 `;
 
-function applyProductFilters(
-  query: ReturnType<typeof supabasePublic.from> extends infer T ? any : never,
-  filters: ProductFilters
-) {
-  const q = filters.q?.trim();
-  const category = filters.category?.trim();
-  const sort = filters.sort || "featured";
+function clean(value?: string) {
+  return value?.trim() || "";
+}
+
+function escapeOrValue(value: string) {
+  return value.replace(/[%_,]/g, "");
+}
+
+function applyProductFilters(query: any, filters: ProductFilters = {}) {
+  const q = clean(filters.q);
+  const category = clean(filters.category);
+  const min = clean(filters.min);
+  const max = clean(filters.max);
+  const featured = clean(filters.featured);
+  const sort = clean(filters.sort) || "featured";
 
   let nextQuery = query.eq("status", "active");
 
   if (q) {
+    const safeQ = escapeOrValue(q);
     nextQuery = nextQuery.or(
-      `name.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`
+      `name.ilike.%${safeQ}%,description.ilike.%${safeQ}%,category.ilike.%${safeQ}%`
     );
   }
 
   if (category && category !== "all") {
-    nextQuery = nextQuery.eq("category", normalizeCategory(category));
+    nextQuery = nextQuery.eq("category", category);
   }
 
-  if (filters.min) {
-    const min = Number(filters.min);
-    if (!Number.isNaN(min)) {
-      nextQuery = nextQuery.gte("price", min);
+  if (featured === "true") {
+    nextQuery = nextQuery.eq("featured", true);
+  }
+
+  if (min) {
+    const minPrice = Number(min);
+    if (!Number.isNaN(minPrice)) {
+      nextQuery = nextQuery.gte("price", minPrice);
     }
   }
 
-  if (filters.max) {
-    const max = Number(filters.max);
-    if (!Number.isNaN(max)) {
-      nextQuery = nextQuery.lte("price", max);
+  if (max) {
+    const maxPrice = Number(max);
+    if (!Number.isNaN(maxPrice)) {
+      nextQuery = nextQuery.lte("price", maxPrice);
     }
   }
 
   if (sort === "price-asc") {
-    nextQuery = nextQuery.order("price", { ascending: true });
+    nextQuery = nextQuery
+      .order("price", { ascending: true })
+      .order("featured", { ascending: false });
   } else if (sort === "price-desc") {
-    nextQuery = nextQuery.order("price", { ascending: false });
+    nextQuery = nextQuery
+      .order("price", { ascending: false })
+      .order("featured", { ascending: false });
   } else if (sort === "newest") {
     nextQuery = nextQuery.order("created_at", { ascending: false });
+  } else if (sort === "category") {
+    nextQuery = nextQuery
+      .order("category", { ascending: true })
+      .order("featured", { ascending: false })
+      .order("created_at", { ascending: false });
   } else {
     nextQuery = nextQuery
       .order("featured", { ascending: false })
@@ -84,6 +111,39 @@ export async function getProducts(filters: ProductFilters = {}) {
   }
 
   return (data || []) as Product[];
+}
+
+export async function getStoreProducts(
+  filters: ProductFilters = {},
+  page = 1,
+  pageSize = 12
+): Promise<StoreProductsResult> {
+  const safePage = Math.max(1, page);
+  const from = (safePage - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const baseQuery = supabasePublic
+    .from("products")
+    .select(PRODUCT_SELECT, { count: "exact" });
+
+  const query = applyProductFilters(baseQuery, filters).range(from, to);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    throw new Error(`Failed to fetch store products: ${error.message}`);
+  }
+
+  const total = count || 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  return {
+    products: (data || []) as Product[],
+    total,
+    page: safePage,
+    pageSize,
+    totalPages,
+  };
 }
 
 export async function getFeaturedProducts(limit = 3) {
@@ -149,8 +209,7 @@ export async function getCategories() {
   for (const item of data || []) {
     if (!item.category) continue;
 
-    const category = item.category;
-    counts.set(category, (counts.get(category) || 0) + 1);
+    counts.set(item.category, (counts.get(item.category) || 0) + 1);
   }
 
   return Array.from(counts.entries())

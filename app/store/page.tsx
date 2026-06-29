@@ -1,153 +1,177 @@
 import Link from "next/link";
+import { Search } from "lucide-react";
+
 import { PageShell } from "@/components/ui/PageShell";
-import { Section } from "@/components/ui/Section";
 import { ProductCard } from "@/components/products/ProductCard";
-import { EmptyState } from "@/components/states/EmptyState";
-import { getCategories, getProducts } from "@/lib/products/queries";
+import { StoreFilters } from "@/components/store/StoreFilters";
+import { Pagination } from "@/components/store/Pagination";
+import { getCategories, getStoreProducts } from "@/lib/products/queries";
+import type { ProductFilters } from "@/lib/products/types";
 
 export const metadata = {
-  title: "Store",
+  title: "Store | Ranin Art",
+  description:
+    "Browse handmade canvases, painted vinyls, bookmarks, and custom art.",
 };
 
 export const revalidate = 60;
 
 type StorePageProps = {
-  searchParams: Promise<{
-    q?: string;
-    category?: string;
-    sort?: string;
-    min?: string;
-    max?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function getSingleParam(
+  params: Record<string, string | string[] | undefined>,
+  key: string
+) {
+  const value = params[key];
+
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+
+  return value;
+}
+
+function getFilters(
+  params: Record<string, string | string[] | undefined>
+): ProductFilters {
+  return {
+    q: getSingleParam(params, "q"),
+    category: getSingleParam(params, "category"),
+    sort: getSingleParam(params, "sort") || "featured",
+    min: getSingleParam(params, "min"),
+    max: getSingleParam(params, "max"),
+    featured: getSingleParam(params, "featured"),
+  };
+}
+
+function getPage(params: Record<string, string | string[] | undefined>) {
+  const page = Number(getSingleParam(params, "page") || "1");
+
+  if (Number.isNaN(page) || page < 1) {
+    return 1;
+  }
+
+  return page;
+}
+
+function getFlatSearchParams(
+  params: Record<string, string | string[] | undefined>
+) {
+  const flat: Record<string, string | undefined> = {};
+
+  for (const [key, value] of Object.entries(params)) {
+    flat[key] = Array.isArray(value) ? value[0] : value;
+  }
+
+  return flat;
+}
 
 export default async function StorePage({ searchParams }: StorePageProps) {
   const params = await searchParams;
+  const filters = getFilters(params);
+  const page = getPage(params);
+  const flatParams = getFlatSearchParams(params);
 
-  const [products, categories] = await Promise.all([
-    getProducts(params),
+  const [categories, result] = await Promise.all([
     getCategories(),
+    getStoreProducts(filters, page, 12),
   ]);
 
-  const currentCategory = params.category || "all";
-  const currentSort = params.sort || "featured";
+  const activeFilterCount = [
+    filters.q,
+    filters.category,
+    filters.min,
+    filters.max,
+    filters.featured,
+    filters.sort && filters.sort !== "featured" ? filters.sort : undefined,
+  ].filter(Boolean).length;
 
   return (
-    <PageShell>
-      <Section
-        eyebrow="Store"
-        title="Browse the collection"
-        description="Explore handmade canvases, painted vinyls, bookmarks, and custom-ready pieces."
-        className="pt-4"
-      >
-        <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-          <aside className="premium-card h-fit rounded-[1.5rem] p-5">
-            <h2 className="font-display text-3xl font-bold">Filters</h2>
-
-            <form className="mt-5 grid gap-4">
-              <div>
-                <label className="text-sm font-bold">Search</label>
-                <input
-                  name="q"
-                  defaultValue={params.q || ""}
-                  placeholder="Search products"
-                  className="mt-2 h-11 w-full rounded-full border border-[#ead8e2] bg-white px-4 text-sm outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-bold">Category</label>
-                <select
-                  name="category"
-                  defaultValue={currentCategory}
-                  className="mt-2 h-11 w-full rounded-full border border-[#ead8e2] bg-white px-4 text-sm capitalize outline-none"
-                >
-                  <option value="all">All categories</option>
-                  {categories.map((category) => (
-                    <option key={category.name} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-bold">Sort</label>
-                <select
-                  name="sort"
-                  defaultValue={currentSort}
-                  className="mt-2 h-11 w-full rounded-full border border-[#ead8e2] bg-white px-4 text-sm outline-none"
-                >
-                  <option value="featured">Featured first</option>
-                  <option value="newest">Newest</option>
-                  <option value="price-asc">Price low to high</option>
-                  <option value="price-desc">Price high to low</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-bold">Min</label>
-                  <input
-                    name="min"
-                    type="number"
-                    defaultValue={params.min || ""}
-                    className="mt-2 h-11 w-full rounded-full border border-[#ead8e2] bg-white px-4 text-sm outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-bold">Max</label>
-                  <input
-                    name="max"
-                    type="number"
-                    defaultValue={params.max || ""}
-                    className="mt-2 h-11 w-full rounded-full border border-[#ead8e2] bg-white px-4 text-sm outline-none"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="soft-motion rounded-full bg-[#F9B2D7] px-5 py-3 text-sm font-extrabold"
-              >
-                Apply
-              </button>
-
-              <Link
-                href="/store"
-                className="text-center text-sm font-bold text-muted-foreground"
-              >
-                Clear filters
-              </Link>
-            </form>
-          </aside>
-
+    <PageShell className="py-0">
+      <section className="pb-12 pt-4 sm:pt-5">
+        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <p className="text-sm font-bold text-muted-foreground">
-                Showing {products.length} product
-                {products.length === 1 ? "" : "s"}
+            <div className="flex items-center gap-3">
+              <p className="text-xs font-extrabold uppercase tracking-[0.28em] text-[#b9598c]">
+                Store
               </p>
+
+              <span className="hidden h-px w-10 bg-[#ead8e2] sm:block" />
             </div>
 
-            {products.length > 0 ? (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+            <h1 className="mt-2 font-display text-5xl font-bold leading-none sm:text-6xl">
+              Browse art
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
+              Explore handmade pieces by category, price, newest drops, and
+              featured studio picks.
+            </p>
+          </div>
+
+          <div className="flex w-fit items-center gap-3 rounded-full border border-[#ead8e2] bg-white/80 px-4 py-3 shadow-sm">
+            <p className="text-sm font-extrabold text-[#24171f]">
+              {result.total} product{result.total === 1 ? "" : "s"}
+            </p>
+
+            <span className="h-4 w-px bg-[#ead8e2]" />
+
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground">
+              {activeFilterCount > 0
+                ? `${activeFilterCount} filter${
+                    activeFilterCount === 1 ? "" : "s"
+                  }`
+                : "Featured first"}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+          <StoreFilters categories={categories} filters={filters} />
+
+          <div className="min-w-0">
+            {result.products.length > 0 ? (
+              <>
+                <div className="grid gap-7 md:grid-cols-2">
+                  {result.products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+
+                <Pagination
+                  page={result.page}
+                  totalPages={result.totalPages}
+                  searchParams={flatParams}
+                />
+              </>
             ) : (
-              <EmptyState
-                title="No products found"
-                description="Try clearing filters or adding active products from the admin dashboard."
-                actionHref="/store"
-                actionLabel="Clear filters"
-              />
+              <div className="premium-card flex min-h-[420px] flex-col items-center justify-center rounded-[2rem] p-8 text-center">
+                <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#F9B2D7]/60">
+                  <Search size={24} />
+                </div>
+
+                <h2 className="font-display text-5xl font-bold">
+                  No pieces found
+                </h2>
+
+                <p className="mt-4 max-w-md text-sm leading-7 text-muted-foreground">
+                  Try changing the category, clearing your price range, or
+                  searching for something softer.
+                </p>
+
+                <Link
+                  href="/store"
+                  className="soft-motion mt-7 rounded-full bg-[#24171f] px-5 py-3 text-sm font-extrabold text-white hover:bg-[#F9B2D7] hover:text-[#24171f]"
+                >
+                  Clear filters
+                </Link>
+              </div>
             )}
           </div>
         </div>
-      </Section>
+      </section>
     </PageShell>
   );
 }
