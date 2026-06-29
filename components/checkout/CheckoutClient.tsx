@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Package, Truck } from "lucide-react";
+import { ArrowLeft, Package, Truck } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 
 import { PageShell } from "@/components/ui/PageShell";
@@ -30,9 +30,11 @@ const shippingPrices: Record<ShippingMethod, number> = {
 };
 
 export function CheckoutClient() {
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal } = useCart();
+
   const [form, setForm] = useState<GuestCheckoutForm>(initialForm);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const shipping = shippingPrices[form.shippingMethod];
   const total = subtotal + shipping;
@@ -62,68 +64,44 @@ export function CheckoutClient() {
     }));
   }
 
-  function submitOrderReview(event: FormEvent<HTMLFormElement>) {
+  async function submitCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!canSubmit) return;
 
-    window.localStorage.setItem(
-      "ranin-guest-checkout-draft",
-      JSON.stringify({
-        customer: form,
-        items,
-        subtotal,
-        shipping,
-        total,
-        createdAt: new Date().toISOString(),
-      })
-    );
+    setSubmitting(true);
+    setErrorMessage("");
 
-    setSubmitted(true);
-  }
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: form,
+          items: items.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+          })),
+        }),
+      });
 
-  if (submitted) {
-    return (
-      <PageShell className="py-0">
-        <section className="flex min-h-[70vh] items-center justify-center py-12">
-          <div className="premium-card max-w-xl rounded-[2rem] p-8 text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#DAF9DE]">
-              <CheckCircle2 size={28} />
-            </div>
+      const data = await response.json();
 
-            <h1 className="font-display text-5xl font-bold leading-none">
-              Guest checkout reviewed
-            </h1>
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || "Unable to start checkout.");
+      }
 
-            <p className="mt-4 text-sm leading-7 text-muted-foreground">
-              Your checkout details are saved locally for now. In the next
-              sprint, this will create a Stripe Checkout session and confirm
-              the order through webhooks.
-            </p>
-
-            <div className="mt-7 grid gap-3 sm:grid-cols-2">
-              <Link
-                href="/store"
-                className="soft-motion inline-flex h-12 items-center justify-center rounded-full bg-[#24171f] px-5 text-sm font-extrabold text-white hover:bg-[#F9B2D7] hover:text-[#24171f]"
-              >
-                Continue shopping
-              </Link>
-
-              <button
-                type="button"
-                onClick={() => {
-                  clearCart();
-                  setSubmitted(false);
-                }}
-                className="soft-motion h-12 rounded-full bg-white px-5 text-sm font-extrabold text-[#24171f] shadow-sm hover:bg-[#fff8fc]"
-              >
-                Clear cart
-              </button>
-            </div>
-          </div>
-        </section>
-      </PageShell>
-    );
+      window.location.href = data.url;
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to start checkout."
+      );
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -147,8 +125,8 @@ export function CheckoutClient() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-            No account required. Add your contact and shipping details to review
-            the order before payment.
+            No account required. Add your contact and shipping details before
+            secure Stripe payment.
           </p>
         </div>
 
@@ -171,14 +149,12 @@ export function CheckoutClient() {
           </div>
         ) : (
           <form
-            onSubmit={submitOrderReview}
+            onSubmit={submitCheckout}
             className="grid gap-6 lg:grid-cols-[1fr_380px]"
           >
             <div className="space-y-5">
               <div className="premium-card rounded-[2rem] p-5 sm:p-6">
-                <h2 className="font-display text-4xl font-bold">
-                  Contact
-                </h2>
+                <h2 className="font-display text-4xl font-bold">Contact</h2>
 
                 <div className="mt-5 grid gap-4">
                   <input
@@ -310,7 +286,7 @@ export function CheckoutClient() {
                       Standard shipping
                     </div>
                     <p className="text-sm leading-6 text-muted-foreground">
-                      Estimated shipping placeholder.
+                      Carefully packed and shipped.
                     </p>
                     <p className="mt-3 font-extrabold">$8.00</p>
                   </button>
@@ -412,17 +388,23 @@ export function CheckoutClient() {
                 </div>
               </div>
 
+              {errorMessage && (
+                <div className="mt-4 rounded-2xl bg-red-50 p-3 text-sm font-bold text-red-700">
+                  {errorMessage}
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={!canSubmit}
+                disabled={!canSubmit || submitting}
                 className="soft-motion mt-6 h-12 w-full rounded-full bg-[#F9B2D7] px-5 text-sm font-extrabold text-[#24171f] shadow-sm hover:bg-[#f69cca] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Review guest checkout
+                {submitting ? "Opening Stripe..." : "Continue to payment"}
               </button>
 
               <p className="mt-4 text-xs leading-6 text-muted-foreground">
-                Payment is not charged yet. Stripe will be connected in the next
-                sprint.
+                Payment is handled securely by Stripe. Your order is marked paid
+                only after Stripe confirms payment.
               </p>
             </aside>
           </form>
