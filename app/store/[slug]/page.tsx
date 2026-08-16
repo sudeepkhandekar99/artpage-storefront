@@ -16,6 +16,7 @@ import {
   formatPrice,
   getProductImageUrl,
   getProductImageUrls,
+  productHref,
 } from "@/lib/products/utils";
 import type { Product } from "@/lib/products/types";
 
@@ -144,11 +145,38 @@ export async function generateMetadata({ params }: ProductPageProps) {
     };
   }
 
+  const imageUrl = getProductImageUrl(product);
+
   return {
     title: `${product.name} | Ranin Art`,
     description:
       product.description ||
       `Shop ${product.name}, a handmade ${product.category} by Ranin Art.`,
+    openGraph: {
+      title: `${product.name} | Ranin Art`,
+      description:
+        product.description ||
+        `Shop ${product.name}, a handmade ${product.category} by Ranin Art.`,
+      type: "website",
+      images: imageUrl
+        ? [
+            {
+              url: imageUrl,
+              width: 1200,
+              height: 1200,
+              alt: product.alt_text || product.name,
+            },
+          ]
+        : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${product.name} | Ranin Art`,
+      description:
+        product.description ||
+        `Shop ${product.name}, a handmade ${product.category} by Ranin Art.`,
+      images: imageUrl ? [imageUrl] : [],
+    },
   };
 }
 
@@ -163,6 +191,34 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   const images = getProductImageUrls(product);
   const mainImage = getProductImageUrl(product);
   const badges = getProductBadges(product);
+
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description:
+      product.description ||
+      `Handmade ${product.category} by Ranin Art.`,
+    image: mainImage ? [mainImage] : undefined,
+    sku: product.sku || product.id,
+    brand: {
+      "@type": "Brand",
+      name: "Ranin Art",
+    },
+    category: product.category,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "USD",
+      price: Number(product.price || 0).toFixed(2),
+      availability:
+        product.sold_out || product.status === "sold_out"
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}${productHref(
+        product
+      )}`,
+    },
+  };
 
   const material =
     product.material ||
@@ -231,6 +287,12 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
 
   return (
     <PageShell className="py-0">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productSchema),
+        }}
+      />
       <RecentlyViewedTracker product={product} />
 
       <section className="pb-14 pt-5">
