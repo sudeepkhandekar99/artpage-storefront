@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import Stripe from "stripe";
 
 import { stripe } from "@/lib/stripe/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { getProductImageUrl, productHref } from "@/lib/products/utils";
+import { createClient } from "@/lib/supabase/server";
+import { getProductImageUrl } from "@/lib/products/utils";
 import type { Product } from "@/lib/products/types";
 
 type CheckoutCartItem = {
@@ -43,6 +45,34 @@ function validateBody(body: CheckoutRequestBody) {
     throw new Error("Customer email is required.");
   }
 
+  if (!body.customer?.firstName?.trim()) {
+    throw new Error("First name is required.");
+  }
+
+  if (!body.customer?.lastName?.trim()) {
+    throw new Error("Last name is required.");
+  }
+
+  if (!body.customer?.addressLine1?.trim()) {
+    throw new Error("Shipping address is required.");
+  }
+
+  if (!body.customer?.city?.trim()) {
+    throw new Error("City is required.");
+  }
+
+  if (!body.customer?.state?.trim()) {
+    throw new Error("State is required.");
+  }
+
+  if (!body.customer?.postalCode?.trim()) {
+    throw new Error("Postal code is required.");
+  }
+
+  if (!body.customer?.country?.trim()) {
+    throw new Error("Country is required.");
+  }
+
   if (!body.items || body.items.length === 0) {
     throw new Error("Cart is empty.");
   }
@@ -61,6 +91,12 @@ export async function POST(request: Request) {
 
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+    const authSupabase = await createClient();
+
+    const {
+      data: { user },
+    } = await authSupabase.auth.getUser();
 
     const productIds = body.items.map((item) => item.id);
 
@@ -108,6 +144,10 @@ export async function POST(request: Request) {
       const lineTotal = unitAmount * quantity;
       const imageUrl = getProductImageUrl(product);
 
+      if (unitAmount <= 0) {
+        throw new Error(`${product.name} has an invalid price.`);
+      }
+
       return {
         product,
         quantity,
@@ -121,6 +161,7 @@ export async function POST(request: Request) {
       (sum, item) => sum + item.lineTotal,
       0
     );
+
     const shippingCents = getShippingCents(body.customer.shippingMethod);
     const taxCents = 0;
     const totalCents = subtotalCents + shippingCents + taxCents;
@@ -128,28 +169,33 @@ export async function POST(request: Request) {
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
+        user_id: user?.id || null,
         status: "pending",
+
         customer_email: body.customer.email.trim(),
         customer_first_name: body.customer.firstName.trim(),
         customer_last_name: body.customer.lastName.trim(),
         customer_phone: body.customer.phone?.trim() || null,
+
         shipping_method: body.customer.shippingMethod,
         shipping_address: {
-          line1: body.customer.addressLine1,
-          line2: body.customer.addressLine2 || "",
-          city: body.customer.city,
-          state: body.customer.state,
-          postal_code: body.customer.postalCode,
-          country: body.customer.country,
+          line1: body.customer.addressLine1.trim(),
+          line2: body.customer.addressLine2?.trim() || "",
+          city: body.customer.city.trim(),
+          state: body.customer.state.trim(),
+          postal_code: body.customer.postalCode.trim(),
+          country: body.customer.country.trim(),
         },
-        customer_notes: body.customer.notes || null,
+        customer_notes: body.customer.notes?.trim() || null,
+
         currency: "usd",
         subtotal_cents: subtotalCents,
         shipping_cents: shippingCents,
         tax_cents: taxCents,
         total_cents: totalCents,
+
         metadata: {
-          source: "guest_checkout",
+          source: user ? "account_checkout" : "guest_checkout",
         },
       })
       .select("*")
@@ -186,22 +232,23 @@ export async function POST(request: Request) {
       note: "Checkout Session created",
     });
 
-    const lineItems = normalizedItems.map((item) => ({
-      quantity: item.quantity,
-      price_data: {
-        currency: "usd",
-        unit_amount: item.unitAmount,
-        product_data: {
-          name: item.product.name,
-          description: item.product.description || undefined,
-          images: item.imageUrl ? [item.imageUrl] : undefined,
-          metadata: {
-            product_id: item.product.id,
-            category: item.product.category,
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
+      normalizedItems.map((item) => ({
+        quantity: item.quantity,
+        price_data: {
+          currency: "usd",
+          unit_amount: item.unitAmount,
+          product_data: {
+            name: item.product.name,
+            description: item.product.description || undefined,
+            images: item.imageUrl ? [item.imageUrl] : undefined,
+            metadata: {
+              product_id: item.product.id,
+              category: item.product.category,
+            },
           },
         },
-      },
-    }));
+      }));
 
     if (shippingCents > 0) {
       lineItems.push({

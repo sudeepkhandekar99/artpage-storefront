@@ -110,7 +110,7 @@ export function CartPageClient() {
                 href="/checkout"
                 className="soft-motion mt-6 inline-flex h-12 w-full items-center justify-center rounded-full bg-[#F9B2D7] px-5 text-sm font-extrabold text-[#24171f] shadow-sm hover:bg-[#f69cca]"
               >
-                Checkout as guest
+                Checkout
               </Link>
             </aside>
           </div>

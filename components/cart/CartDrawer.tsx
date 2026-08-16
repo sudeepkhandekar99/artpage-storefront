@@ -104,7 +104,7 @@ export function CartDrawer() {
                 onClick={closeCart}
                 className="soft-motion inline-flex h-12 items-center justify-center rounded-full bg-[#F9B2D7] px-5 text-sm font-extrabold text-[#24171f] shadow-sm hover:bg-[#f69cca]"
               >
-                Checkout as guest
+                Checkout
               </Link>
 
               <Link
