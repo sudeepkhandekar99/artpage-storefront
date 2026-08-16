@@ -168,6 +168,25 @@ h4,
   will-change: transform;
 }
 
+/* Sprint 10 polish */
+
+.page-transition {
+  animation: pageEnter 280ms ease-out both;
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 239, 244, 0.9) 0%,
+    rgba(255, 255, 255, 0.9) 45%,
+    rgba(248, 239, 244, 0.9) 100%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.35s ease-in-out infinite;
+}
+
 /* Animations */
 
 @keyframes heroMobileTrack {
@@ -213,34 +232,34 @@ h4,
   }
 }
 
-.price-slider {
-  height: 6px;
-  cursor: pointer;
-  appearance: none;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(249, 178, 215, 0.9),
-    rgba(207, 236, 243, 0.9)
-  );
-  outline: none;
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.price-slider::-webkit-slider-thumb {
-  height: 18px;
-  width: 18px;
-  appearance: none;
-  border: 3px solid white;
-  border-radius: 999px;
-  background: #24171f;
-  box-shadow: 0 4px 14px rgba(36, 23, 31, 0.2);
+@keyframes shimmer {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
 }
 
-.price-slider::-moz-range-thumb {
-  height: 18px;
-  width: 18px;
-  border: 3px solid white;
-  border-radius: 999px;
-  background: #24171f;
-  box-shadow: 0 4px 14px rgba(36, 23, 31, 0.2);
+@media (max-width: 640px) {
+  .premium-card {
+    border-radius: 1.5rem;
+  }
+
+  .soft-motion:hover {
+    transform: none;
+  }
 }

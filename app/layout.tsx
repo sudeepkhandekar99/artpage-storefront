@@ -6,6 +6,8 @@ import "./globals.css";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { CartProvider } from "@/components/cart/CartProvider";
+import { WishlistProvider } from "@/components/wishlist/WishlistProvider";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 const bodyFont = Inter({
   subsets: ["latin"],
@@ -46,15 +48,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${bodyFont.variable} ${displayFont.variable}`}>
-        <CartProvider>
-          <div className="flex min-h-screen flex-col">
-            <Navbar />
+        <WishlistProvider>
+          <CartProvider>
+            <div className="flex min-h-screen flex-col">
+              <Navbar />
 
-            <main className="flex-1">{children}</main>
+              <main className="flex-1">
+                <PageTransition>{children}</PageTransition>
+              </main>
 
-            <Footer />
-          </div>
-        </CartProvider>
+              <Footer />
+            </div>
+          </CartProvider>
+        </WishlistProvider>
       </body>
     </html>
   );

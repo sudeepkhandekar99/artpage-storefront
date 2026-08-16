@@ -1,10 +1,13 @@
 import Link from "next/link";
+
 import type { Product } from "@/lib/products/types";
 import {
   formatPrice,
   getProductImageUrl,
   productHref,
 } from "@/lib/products/utils";
+import { WishlistButton } from "@/components/wishlist/WishlistButton";
+import { toWishlistItem } from "@/lib/wishlist/utils";
 
 function getMetadataBoolean(product: Product, key: string) {
   const value = product.metadata?.[key];
@@ -13,10 +16,7 @@ function getMetadataBoolean(product: Product, key: string) {
 
 function isNewProduct(product: Product) {
   const created = new Date(product.created_at).getTime();
-
-  if (Number.isNaN(created)) {
-    return false;
-  }
+  if (Number.isNaN(created)) return false;
 
   const fourteenDays = 14 * 24 * 60 * 60 * 1000;
   return Date.now() - created < fourteenDays;
@@ -61,26 +61,35 @@ function getBadges(product: Product) {
 export function ProductCard({ product }: { product: Product }) {
   const imageUrl = getProductImageUrl(product);
   const badges = getBadges(product);
+  const href = productHref(product);
+  const wishlistItem = toWishlistItem(product);
 
   return (
-    <Link
-      href={productHref(product)}
-      className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-[#ead8e2]/90 bg-white shadow-[0_14px_45px_rgba(36,23,31,0.055)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_65px_rgba(36,23,31,0.09)]"
-    >
-      <div className="flex aspect-square items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#fff8fc_100%)] p-7 sm:p-8">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={product.alt_text || product.name}
-            className="h-full w-full object-contain drop-shadow-[0_18px_22px_rgba(36,23,31,0.10)] transition duration-300 group-hover:scale-[1.035]"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center rounded-[1.4rem] bg-[#f8eff4] p-8 text-center">
-            <span className="font-display text-2xl font-bold capitalize">
-              {product.category}
-            </span>
-          </div>
-        )}
+    <article className="group flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-[#ead8e2]/90 bg-white shadow-[0_14px_45px_rgba(36,23,31,0.055)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_65px_rgba(36,23,31,0.09)]">
+      <div className="relative">
+        <WishlistButton
+          item={wishlistItem}
+          className="absolute right-4 top-4 z-10 h-11 w-11 px-0"
+        />
+
+        <Link
+          href={href}
+          className="flex aspect-square items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#fff8fc_100%)] p-7 sm:p-8"
+        >
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={product.alt_text || product.name}
+              className="h-full w-full object-contain drop-shadow-[0_18px_22px_rgba(36,23,31,0.10)] transition duration-300 group-hover:scale-[1.035]"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center rounded-[1.4rem] bg-[#f8eff4] p-8 text-center">
+              <span className="font-display text-2xl font-bold capitalize">
+                {product.category}
+              </span>
+            </div>
+          )}
+        </Link>
       </div>
 
       <div className="flex flex-1 flex-col p-5 sm:p-6">
@@ -107,9 +116,11 @@ export function ProductCard({ product }: { product: Product }) {
           </p>
         </div>
 
-        <h3 className="font-display text-[1.9rem] font-bold leading-[1.02] text-[#24171f] sm:text-[2rem]">
-          {product.name}
-        </h3>
+        <Link href={href}>
+          <h3 className="font-display text-[1.9rem] font-bold leading-[1.02] text-[#24171f] sm:text-[2rem]">
+            {product.name}
+          </h3>
+        </Link>
 
         {product.description && (
           <p className="mt-4 line-clamp-3 text-sm leading-7 text-muted-foreground">
@@ -122,11 +133,14 @@ export function ProductCard({ product }: { product: Product }) {
             {product.dimensions || "Handmade piece"}
           </p>
 
-          <span className="inline-flex items-center rounded-full bg-[#fff8fc] px-4 py-2 text-sm font-extrabold text-[#24171f] transition group-hover:bg-[#F9B2D7]">
+          <Link
+            href={href}
+            className="inline-flex items-center rounded-full bg-[#fff8fc] px-4 py-2 text-sm font-extrabold text-[#24171f] transition group-hover:bg-[#F9B2D7]"
+          >
             View
-          </span>
+          </Link>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }

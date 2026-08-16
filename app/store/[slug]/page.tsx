@@ -1,13 +1,17 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowLeft, Check, Package, ShieldCheck, Truck } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { PageShell } from "@/components/ui/PageShell";
-import { ProductCard } from "@/components/products/ProductCard";
+import { ProductActionPanel } from "@/components/products/ProductActionPanel";
 import { ProductGallery } from "@/components/products/ProductGallery";
 import { ProductPurchaseBox } from "@/components/products/ProductPurchaseBox";
-import { getProductBySlug, getRelatedProducts } from "@/lib/products/queries";
+import { ProductRecommendations } from "@/components/products/ProductRecommendations";
+import { RecentlyViewedRail } from "@/components/products/RecentlyViewedRail";
+import { RecentlyViewedTracker } from "@/components/products/RecentlyViewedTracker";
+import { getProductBySlug } from "@/lib/products/queries";
 import {
   formatPrice,
   getProductImageUrl,
@@ -53,7 +57,9 @@ function metaBoolean(product: Product, keys: string[]) {
 function getProductBadges(product: Product) {
   const badges: string[] = [];
 
-  if (product.featured) badges.push("Featured");
+  if (product.featured) {
+    badges.push("Featured");
+  }
 
   if (
     product.is_original ||
@@ -89,6 +95,7 @@ function DetailItem({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#b9598c]">
         {label}
       </p>
+
       <p className="mt-2 text-sm font-bold leading-6 text-[#24171f]">
         {value}
       </p>
@@ -102,7 +109,7 @@ function AccordionItem({
   defaultOpen = false,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   defaultOpen?: boolean;
 }) {
   return (
@@ -113,6 +120,7 @@ function AccordionItem({
       <summary className="cursor-pointer list-none text-sm font-extrabold text-[#24171f]">
         <div className="flex items-center justify-between gap-4">
           <span>{title}</span>
+
           <span className="text-xl leading-none transition group-open:rotate-45">
             +
           </span>
@@ -146,16 +154,11 @@ export async function generateMetadata({ params }: ProductPageProps) {
 
 export default async function ProductDetailPage({ params }: ProductPageProps) {
   const { slug } = await params;
-
   const product = await getProductBySlug(slug);
 
   if (!product) {
     notFound();
   }
-
-  const [relatedProducts] = await Promise.all([
-    getRelatedProducts(product, 4),
-  ]);
 
   const images = getProductImageUrls(product);
   const mainImage = getProductImageUrl(product);
@@ -170,16 +173,22 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
     metaValue(product, ["medium", "surface_type"], product.category);
 
   const frameIncluded =
-    product.frame_included === true ||
-    metaBoolean(product, ["frame_included"])
+    product.frame_included === true || metaBoolean(product, ["frame_included"])
       ? "Frame included"
       : metaValue(product, ["frame_info"], "Frame not included");
 
   const processingTime = product.processing_time_days
     ? `${product.processing_time_days} days`
-    : metaValue(product, ["processing_time", "processing_time_days"], "Made to order timeline shared after purchase");
+    : metaValue(
+        product,
+        ["processing_time", "processing_time_days"],
+        "Made to order timeline shared after purchase"
+      );
 
-  const certificate = metaBoolean(product, ["certificate", "certificate_of_authenticity"])
+  const certificate = metaBoolean(product, [
+    "certificate",
+    "certificate_of_authenticity",
+  ])
     ? "Certificate included"
     : metaValue(
         product,
@@ -189,7 +198,11 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
 
   const edition = product.edition_number
     ? product.edition_number
-    : metaValue(product, ["edition_number", "edition"], "Open edition / one-off handmade piece");
+    : metaValue(
+        product,
+        ["edition_number", "edition"],
+        "Open edition / one-off handmade piece"
+      );
 
   const careInstructions =
     product.care_instructions ||
@@ -210,11 +223,17 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
   const originalOrPrint =
     product.is_original || metaBoolean(product, ["is_original", "original"])
       ? "Original artwork"
-      : metaValue(product, ["original_or_print", "product_type"], "Made to order handmade piece");
+      : metaValue(
+          product,
+          ["original_or_print", "product_type"],
+          "Made to order handmade piece"
+        );
 
   return (
     <PageShell className="py-0">
-      <section className="pb-16 pt-5">
+      <RecentlyViewedTracker product={product} />
+
+      <section className="pb-14 pt-5">
         <Link
           href="/store"
           className="soft-motion mb-6 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-extrabold shadow-sm hover:bg-white"
@@ -233,16 +252,18 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
 
           <div className="space-y-6">
             <div>
-              <div className="mb-4 flex flex-wrap gap-2">
-                {badges.map((badge) => (
-                  <span
-                    key={badge}
-                    className="rounded-full border border-[#ead8e2] bg-white/90 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#24171f] shadow-sm"
-                  >
-                    {badge}
-                  </span>
-                ))}
-              </div>
+              {badges.length > 0 && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {badges.map((badge) => (
+                    <span
+                      key={badge}
+                      className="rounded-full border border-[#ead8e2] bg-white/90 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#24171f] shadow-sm"
+                    >
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <p className="text-xs font-extrabold uppercase tracking-[0.3em] text-[#b9598c]">
                 {product.category}
@@ -266,6 +287,8 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
             </div>
 
             <ProductPurchaseBox product={product} imageUrl={mainImage} />
+
+            <ProductActionPanel product={product} />
 
             <div className="grid gap-3 sm:grid-cols-2">
               <DetailItem
@@ -295,10 +318,12 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                       <Check size={16} />
                       <span>{originalOrPrint}</span>
                     </div>
+
                     <div className="flex items-center gap-2">
                       <Check size={16} />
                       <span>{material}</span>
                     </div>
+
                     <div className="flex items-center gap-2">
                       <Check size={16} />
                       <span>{certificate}</span>
@@ -317,6 +342,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                         <Truck size={17} />
                         Shipping
                       </div>
+
                       <p>
                         Shipping cost and timeline will depend on the product
                         type, destination, and packaging needs.
@@ -328,6 +354,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                         <Package size={17} />
                         Returns
                       </div>
+
                       <p>
                         Returns and exchanges depend on whether the item is
                         ready-made or custom. Custom work may be final sale.
@@ -365,6 +392,7 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
                   <h3 className="font-display text-3xl font-bold leading-none">
                     Handmade with care
                   </h3>
+
                   <p className="mt-2 text-sm leading-7 text-muted-foreground">
                     Every product is handled as an artwork, not a mass-produced
                     item. Packaging and processing are planned around the piece.
@@ -376,24 +404,9 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
         </div>
       </section>
 
-      {relatedProducts.length > 0 && (
-        <section className="pb-20">
-          <div className="mb-6">
-            <p className="text-xs font-extrabold uppercase tracking-[0.3em] text-[#b9598c]">
-              Related
-            </p>
-            <h2 className="mt-2 font-display text-5xl font-bold leading-none">
-              You may also like
-            </h2>
-          </div>
+      <ProductRecommendations product={product} />
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {relatedProducts.map((relatedProduct) => (
-              <ProductCard key={relatedProduct.id} product={relatedProduct} />
-            ))}
-          </div>
-        </section>
-      )}
+      <RecentlyViewedRail currentProductId={product.id} />
     </PageShell>
   );
 }
